@@ -55,3 +55,15 @@ to output logs to a file, provide `--log-path <path>`. file logs will always be 
 
 want to do more with packet parsing? check out the
 [standalone library](https://github.com/IceDynamix/reliquary) the archiver is built on top off!
+
+## source
+- [avatar config](https://raw.githubusercontent.com/Dimbreath/StarRailData/master/ExcelOutput/AvatarConfig.json), [github](https://github.com/Dimbreath/StarRailData)
+- [avatar skill tree config](https://raw.githubusercontent.com/Dimbreath/StarRailData/master/ExcelOutput/AvatarSkillTreeConfig.json)
+- [equipment config](https://raw.githubusercontent.com/Dimbreath/StarRailData/master/ExcelOutput/EquipmentConfig.json)
+- [relic config](https://raw.githubusercontent.com/Dimbreath/StarRailData/master/ExcelOutput/RelicConfig.json)
+- [relic set config](https://raw.githubusercontent.com/Dimbreath/StarRailData/master/ExcelOutput/RelicSetConfig.json)
+- [relic main affix config](https://raw.githubusercontent.com/Dimbreath/StarRailData/master/ExcelOutput/RelicMainAffixConfig.json)
+- [relic sub affix config](https://raw.githubusercontent.com/Dimbreath/StarRailData/master/ExcelOutput/RelicSubAffixConfig.json)
+- [text map](https://raw.githubusercontent.com/Dimbreath/StarRailData/master/TextMap/TextMapEN.json)
+- [keys](https://raw.githubusercontent.com/tamilpp25/Iridium-SR/main/data/Keys.json), [github](https://github.com/tamilpp25/Iridium-SR/blob/main/data/Keys.json)
+

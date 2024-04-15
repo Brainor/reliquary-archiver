@@ -295,7 +295,9 @@ impl Database {
 
     fn get<T: DeserializeOwned>(url: String) -> T {
         debug!(url, "requesting from resource");
-        ureq::get(&url)
+        let proxy = ureq::Proxy::new("127.0.0.1:7890").unwrap();
+        let agent = ureq::AgentBuilder::new().proxy(proxy).build();
+        agent.get(&url)
             .call()
             .unwrap()
             .into_json()
