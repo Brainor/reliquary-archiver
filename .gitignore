@@ -1,7 +1,6 @@
 /target
 /.cargo
-Packet.lib
-wpcap.lib
+/*.lib
 .idea
 /*.json
 /*.log
