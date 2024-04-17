@@ -4,6 +4,8 @@
 //! [Fribbels HSR Optimizer]: https://github.com/fribbels/hsr-optimizer
 //! [kel-z's HSR-Scanner]: https://github.com/kel-z/HSR-Scanner
 use std::collections::HashMap;
+use std::io::Write;
+use std::path::PathBuf;
 
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
@@ -258,32 +260,61 @@ pub struct Database {
 
 impl Database {
     #[instrument(name = "config_map")]
-    pub fn new_from_online() -> Self {
+    pub fn new_from_online(path: Option<&PathBuf>) -> Self {
         info!("initializing database from online sources, this might take a while...");
         Database {
-            avatar_config: Self::load_online_config(),
-            avatar_skill_tree_config: Self::load_online_config(),
-            equipment_config: Self::load_online_config(),
-            relic_config: Self::load_online_config(),
-            relic_set_config: Self::load_online_config(),
-            relic_main_affix_config: Self::load_online_config(),
-            relic_sub_affix_config: Self::load_online_config(),
-            text_map: Self::load_online_text_map(),
-            keys: Self::load_online_keys(),
+            avatar_config: Self::load_online_config(path),
+            avatar_skill_tree_config: Self::load_online_config(path),
+            equipment_config: Self::load_online_config(path),
+            relic_config: Self::load_online_config(path),
+            relic_set_config: Self::load_online_config(path),
+            relic_main_affix_config: Self::load_online_config(path),
+            relic_sub_affix_config: Self::load_online_config(path),
+            text_map: Self::load_online_text_map(path),
+            keys: Self::load_online_keys(path),
         }
     }
 
     // TODO: new_from_source
+    pub fn new_from_source(resource_path: &PathBuf)-> Self {
+        info!("initializing database from local sources");
+        let old_keys = Self::load_source::<HashMap<u32, String>>(resource_path, "Keys.json");
+        let mut keys_bytes = HashMap::new();
 
-    fn load_online_config<T: ResourceMap + DeserializeOwned>() -> T {
-        Self::get::<T>(format!("{BASE_RESOURCE_URL}/ExcelOutput/{}", T::get_json_name()))
-    }
-    fn load_online_text_map() -> TextMap {
-        Self::get(format!("{BASE_RESOURCE_URL}/TextMap/TextMapEN.json"))
+        for (k, v) in old_keys {
+            keys_bytes.insert(k, BASE64_STANDARD.decode(v).unwrap());
+        }
+        
+        Database {
+            avatar_config: Self::load_source(resource_path, "AvatarConfig.json"),
+            avatar_skill_tree_config: Self::load_source(resource_path, "AvatarSkillTreeConfig.json"),
+            equipment_config: Self::load_source(resource_path, "EquipmentConfig.json"),
+            relic_config: Self::load_source(resource_path, "RelicConfig.json"),
+            relic_set_config: Self::load_source(resource_path, "RelicSetConfig.json"),
+            relic_main_affix_config: Self::load_source(resource_path, "RelicMainAffixConfig.json"),
+            relic_sub_affix_config: Self::load_source(resource_path, "RelicSubAffixConfig.json"),
+            text_map: Self::load_source(resource_path, "TextMapEN.json"),
+            keys: keys_bytes,
+        }
     }
 
-    fn load_online_keys() -> HashMap<u32, Vec<u8>> {
-        let keys: HashMap<u32, String> = Self::get("https://raw.githubusercontent.com/tamilpp25/Iridium-SR/main/data/Keys.json".to_string());
+
+    fn load_source<T: DeserializeOwned>(resource_path: &PathBuf, file_stem: &str) -> T {
+        let file = std::fs::File::open(resource_path.join(file_stem)).unwrap();
+        serde_json::from_reader(std::io::BufReader::new(file)).unwrap()
+    }
+    fn load_online_config<T: ResourceMap + DeserializeOwned>(path: Option<&PathBuf>) -> T {
+        let file = path.map(|p| p.join(T::get_json_name()));
+        Self::get::<T>(format!("{BASE_RESOURCE_URL}/ExcelOutput/{}", T::get_json_name()), file.as_ref())
+    }
+    fn load_online_text_map(path: Option<&PathBuf>) -> TextMap {
+        let file = path.map(|p| p.join("TextMapEN.json"));
+        Self::get(format!("{BASE_RESOURCE_URL}/TextMap/TextMapEN.json"), file.as_ref())
+    }
+
+    fn load_online_keys(path: Option<&PathBuf>) -> HashMap<u32, Vec<u8>> {
+        let file = path.map(|p| p.join("Keys.json"));
+        let keys: HashMap<u32, String> = Self::get("https://raw.githubusercontent.com/tamilpp25/Iridium-SR/main/data/Keys.json".to_string(), file.as_ref());
         let mut keys_bytes = HashMap::new();
 
         for (k, v) in keys {
@@ -293,15 +324,23 @@ impl Database {
         keys_bytes
     }
 
-    fn get<T: DeserializeOwned>(url: String) -> T {
+    fn get<T: DeserializeOwned>(url: String, path: Option<&PathBuf>) -> T {
         debug!(url, "requesting from resource");
-        let proxy = ureq::Proxy::new("127.0.0.1:7890").unwrap();
-        let agent = ureq::AgentBuilder::new().proxy(proxy).build();
-        agent.get(&url)
-            .call()
-            .unwrap()
-            .into_json()
-            .unwrap()
+        let request = match std::env::var("http_proxy"){
+            Ok(proxy) => {
+                let proxy = ureq::Proxy::new(proxy).unwrap();
+                let agent = ureq::AgentBuilder::new().proxy(proxy).build();
+                agent.get(&url)
+            }
+            Err(_) => ureq::get(&url)
+        };
+        let text = request.call().unwrap()
+            .into_string().unwrap();
+        if let Some(path) = path {
+            let mut file = std::fs::File::create(path).unwrap();
+            file.write_all(text.as_bytes()).unwrap();
+        }
+        serde_json::from_str(&text).unwrap()
     }
 
     pub fn keys(&self) -> &HashMap<u32, Vec<u8>> {

@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::fs::{self, read_dir, File};
 use std::path::PathBuf;
 use std::sync::{mpsc, Mutex};
 use std::time::Duration;
@@ -32,6 +32,12 @@ struct Args {
     /// Path to output log to
     #[arg(short, long)]
     log_path: Option<PathBuf>,
+    /// Path to output json resources to
+    #[arg(long)]
+    resource_path: Option<PathBuf>,
+    /// Replace json resources in resource_path or not
+    #[arg(short, long, default_value = "false")]
+    new_resources: bool,
 }
 
 fn main() {
@@ -42,7 +48,17 @@ fn main() {
 
     debug!(?args);
 
-    let database = Database::new_from_online();
+    let database = match &args.resource_path {
+        Some(path) => {
+            if !args.new_resources && read_dir(path).is_ok_and(|d| d.count() >= 9){
+                Database::new_from_source(path)
+            } else {
+                fs::create_dir_all(path).unwrap();
+                Database::new_from_online(Some(path))
+            }
+        }
+        None => Database::new_from_online(None)
+    };
     let sniffer = GameSniffer::new().set_initial_keys(database.keys().clone());
     let exporter = OptimizerExporter::new(database);
 

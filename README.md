@@ -12,6 +12,7 @@ made to be used with [fribbels hsr optimizer](https://github.com/fribbels/hsr-op
   - when installing on windows, make sure to enable the "winpcap api-compatible mode".
     if this is grayed out for you, see [here](https://github.com/IceDynamix/reliquary-archiver/issues/2)
     for more details
+  - if on Windows, make sure to add npcap folder(`C:\Windows\System32\Npcap`) to PATH
   - when building on Linux, set the `CAP_NET_RAW` capability on the resulting executable (via [pcap(3pcap)](https://man.archlinux.org/man/pcap.3pcap#Under~5))
     ```sh
     sudo setcap CAP_NET_RAW=+ep target/release/reliquary-archiver
@@ -21,6 +22,8 @@ made to be used with [fribbels hsr optimizer](https://github.com/fribbels/hsr-op
 - run the archiver executable and wait until it says "listening with a timeout"
 - enter train hyperdrive in-gmae
 - if successful, the archiver should output a file to `archiver_output.json`
+- in Windows, add environment variable with `$env:Path += ";C:\Windows\System32\Npcap"` to avoid `npcap.dll` not found error
+- in Windows, set http-proxy environment variable with `$env:http_proxy = "http://127.0.0.1:7890"`
 
 ### cli usage
 
@@ -36,6 +39,8 @@ Options:
   -v, --verbose...           How verbose the output should be, can be set up to 3 times. Has no effect if RUST_LOG is set
   -l, --log-path <LOG_PATH>  Path to output log to
   -h, --help                 Print help
+  --resource-path <PATH>     Path to json resources
+  --new-resources            Replace old json resources with new ones
 ```
 
 to customize logging, either
@@ -50,6 +55,7 @@ to output logs to a file, provide `--log-path <path>`. file logs will always be 
   - for me on windows, adding the `Packet.lib` and `wpcap.lib` from the sdk (check the x64 or arm dir)
     to this directory was enough to link successfully
 - `cargo build` / `cargo run`
+  - `cargo build --release --config 'build.rustflags="-L res"'` for release build
 
 ## library
 
