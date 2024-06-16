@@ -334,8 +334,8 @@ impl Database {
             }
             Err(_) => ureq::get(&url)
         };
-        let text = request.call().unwrap()
-            .into_string().unwrap();
+        let mut text = String::new();
+        request.call().unwrap().into_reader().read_to_string(&mut text).unwrap();
         if let Some(path) = path {
             let mut file = std::fs::File::create(path).unwrap();
             file.write_all(text.as_bytes()).unwrap();
